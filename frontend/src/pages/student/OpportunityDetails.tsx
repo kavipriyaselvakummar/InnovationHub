@@ -1,15 +1,29 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { DashboardLayout } from '../../components/DashboardLayout';
 import { studentNavItems } from './navConfig';
 import { useParams, useNavigate } from 'react-router-dom';
-import { mockOpportunities, mockUsers } from '../../data/mockData';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { Button } from '../../components/Button';
+import { getOpportunities, getUsers, getJoinRequests, saveJoinRequests, getTeams } from '../../services';
+import { useAuth } from '../../contexts/AuthContext';
 
 export const OpportunityDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const opportunity = mockOpportunities.find(o => o.id === id);
+  const { currentUser } = useAuth();
+  
+  const opportunity = useMemo(() => getOpportunities().find(o => o.id === id), [id]);
+  const creator = useMemo(() => opportunity ? getUsers().find(u => u.id === opportunity.creatorId) : null, [opportunity]);
+  
+  const existingRequest = useMemo(() => {
+    if (!currentUser || !id) return null;
+    return getJoinRequests().find(r => r.requesterId === currentUser.id && r.opportunityId === id);
+  }, [currentUser, id]);
+
+  const team = useMemo(() => {
+    if (!id) return null;
+    return getTeams().find(t => t.opportunityId === id);
+  }, [id]);
 
   if (!opportunity) {
     return (
@@ -22,7 +36,22 @@ export const OpportunityDetails: React.FC = () => {
     );
   }
 
-  const creator = mockUsers.find(u => u.id === opportunity.creatorId);
+  const handleJoin = () => {
+    if (!currentUser) return;
+    const reqs = getJoinRequests();
+    const newReq = {
+      id: 'req_' + Date.now(),
+      requesterId: currentUser.id,
+      opportunityId: opportunity.id,
+      status: 'Pending' as const,
+      date: new Date().toISOString()
+    };
+    saveJoinRequests([newReq, ...reqs]);
+    alert('Request to join submitted!');
+    navigate('/student/requests');
+  };
+
+  const isMember = team?.memberIds.includes(currentUser?.id || '');
 
   return (
     <DashboardLayout navItems={studentNavItems}>
@@ -46,6 +75,12 @@ export const OpportunityDetails: React.FC = () => {
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Description</h3>
               <p className="text-gray-700 whitespace-pre-wrap">{opportunity.description}</p>
             </div>
+            {opportunity.problemStatement && (
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Problem Statement</h3>
+                <p className="text-gray-700 whitespace-pre-wrap">{opportunity.problemStatement}</p>
+              </div>
+            )}
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Required Skills</h3>
               <div className="flex gap-2 flex-wrap">
@@ -69,13 +104,21 @@ export const OpportunityDetails: React.FC = () => {
               </div>
               <div>
                 <p className="text-sm text-gray-500">Current Members</p>
-                <p className="font-medium text-gray-900">2 / {opportunity.teamSize}</p>
+                <p className="font-medium text-gray-900">{team ? team.memberIds.length : 0} / {opportunity.teamSize}</p>
               </div>
             </div>
 
             <div className="mt-8">
-              {opportunity.status === 'Open' || opportunity.status === 'Approved' ? (
-                <Button fullWidth onClick={() => alert('Request to join submitted!')}>
+              {isMember ? (
+                <Button fullWidth disabled variant="outline" className="text-green-600 border-green-200 bg-green-50">
+                  You are a member
+                </Button>
+              ) : existingRequest ? (
+                <Button fullWidth disabled variant="secondary">
+                  Request {existingRequest.status}
+                </Button>
+              ) : (opportunity.status === 'Open' || opportunity.status === 'Published' || opportunity.status === 'Approved') ? (
+                <Button fullWidth onClick={handleJoin}>
                   Request to Join Team
                 </Button>
               ) : (

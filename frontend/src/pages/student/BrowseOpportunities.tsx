@@ -1,25 +1,19 @@
 import React, { useState } from 'react';
 import { DashboardLayout } from '../../components/DashboardLayout';
 import { studentNavItems } from './navConfig';
-import { mockOpportunities } from '../../data/mockData';
 import { OpportunityCard } from '../../components/ui/OpportunityCard';
 import { Input } from '../../components/ui/Input';
-import { Select } from '../../components/ui/Select';
+import { getOpportunities } from '../../services';
 
 export const BrowseOpportunities: React.FC = () => {
-  const [search, setSearch] = useState('');
-  const [domainFilter, setDomainFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  // Show approved or published ops
+  const allOpps = getOpportunities().filter(o => o.status === 'Approved' || o.status === 'Published');
 
-  const filteredOpportunities = mockOpportunities.filter(opp => {
-    const matchesSearch = opp.title.toLowerCase().includes(search.toLowerCase()) || 
-                          opp.description.toLowerCase().includes(search.toLowerCase());
-    const matchesDomain = domainFilter ? opp.domain === domainFilter : true;
-    const matchesStatus = statusFilter ? opp.status === statusFilter : true;
-    return matchesSearch && matchesDomain && matchesStatus;
-  });
-
-  const domains = Array.from(new Set(mockOpportunities.map(o => o.domain))).map(d => ({ value: d, label: d }));
+  const filteredOpps = allOpps.filter(opp => 
+    opp.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    opp.domain.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <DashboardLayout navItems={studentNavItems}>
@@ -28,46 +22,25 @@ export const BrowseOpportunities: React.FC = () => {
         <p className="text-gray-600 mt-1">Discover projects and find your next team.</p>
       </div>
 
-      <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-6 flex flex-col md:flex-row gap-4">
-        <div className="flex-1">
+      <div className="mb-6 flex gap-4">
+        <div className="w-full md:w-1/3">
           <Input 
-            label="Search" 
-            placeholder="Search by title or keyword..." 
-            value={search} 
-            onChange={e => setSearch(e.target.value)} 
-          />
-        </div>
-        <div className="w-full md:w-48">
-          <Select 
-            label="Domain"
-            value={domainFilter}
-            onChange={e => setDomainFilter(e.target.value)}
-            options={[{ value: '', label: 'All Domains' }, ...domains]}
-          />
-        </div>
-        <div className="w-full md:w-48">
-          <Select 
-            label="Status"
-            value={statusFilter}
-            onChange={e => setStatusFilter(e.target.value)}
-            options={[
-              { value: '', label: 'All Statuses' },
-              { value: 'Open', label: 'Open' },
-              { value: 'Approved', label: 'Approved' }
-            ]}
+            label="Search" placeholder="Search by title or domain..." 
+            value={searchTerm}
+            onChange={(e: any) => setSearchTerm(e.target.value)}
           />
         </div>
       </div>
 
-      {filteredOpportunities.length > 0 ? (
+      {filteredOpps.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredOpportunities.map(opp => (
-            <OpportunityCard key={opp.id} opportunity={opp} viewPath="/student/opportunities" />
+          {filteredOpps.map(opp => (
+            <OpportunityCard key={opp.id} opportunity={opp}  />
           ))}
         </div>
       ) : (
-        <div className="bg-white rounded-lg border border-gray-200 p-12 text-center text-gray-500">
-          No opportunities found matching your filters.
+        <div className="text-center py-12 bg-white rounded-lg border border-dashed border-gray-300">
+          <p className="text-gray-500">No opportunities found matching your search.</p>
         </div>
       )}
     </DashboardLayout>

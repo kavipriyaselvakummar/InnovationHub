@@ -1,48 +1,32 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { DashboardLayout } from '../../components/DashboardLayout';
 import { facultyNavItems } from './navConfig';
-import { mockTeams, mockOpportunities } from '../../data/mockData';
+import { getTeams, getOpportunities } from '../../services';
 import { DataTable } from '../../components/ui/DataTable';
 import type { Column } from '../../components/ui/DataTable';
 import { ProgressBar } from '../../components/ui/ProgressBar';
 import { Button } from '../../components/Button';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 
 export const ManageTeams: React.FC = () => {
-  const mentoredTeams = mockTeams.map(team => {
-    const opportunity = mockOpportunities.find(o => o.id === team.opportunityId);
-    return { ...team, opportunity };
-  });
+  const { currentUser } = useAuth();
+  const mentoredTeams = useMemo(() => {
+    if (!currentUser) return [];
+    const allTeams = getTeams().filter(t => t.mentorId === currentUser.id);
+    const opps = getOpportunities();
+    return allTeams.map(team => {
+      const opp = opps.find(o => o.id === team.opportunityId);
+      return { ...team, opportunity: opp };
+    });
+  }, [currentUser]);
 
-  const columns: Column<typeof mentoredTeams[0]>[] = [
-    {
-      header: 'Team Name',
-      accessor: 'name',
-    },
-    {
-      header: 'Project',
-      accessor: (team) => team.opportunity?.title,
-    },
-    {
-      header: 'Members',
-      accessor: (team) => `${team.memberIds.length} / ${team.opportunity?.teamSize || 0}`,
-    },
-    {
-      header: 'Progress',
-      accessor: (team) => (
-        <div className="w-32">
-          <ProgressBar progress={team.progress} />
-        </div>
-      ),
-    },
-    {
-      header: 'Action',
-      accessor: (team) => (
-        <Link to={`/faculty/teams/${team.id}`}>
-          <Button variant="outline" className="py-1 px-3 text-xs">View Team</Button>
-        </Link>
-      ),
-    }
+  const columns: Column<any>[] = [
+    { header: 'Team Name', accessor: 'name' },
+    { header: 'Project', accessor: (team) => team.opportunity?.title },
+    { header: 'Members', accessor: (team) => `${team.memberIds.length} / ${team.opportunity?.teamSize || 0}` },
+    { header: 'Progress', accessor: (team) => <div className="w-32"><ProgressBar progress={team.progress} /></div> },
+    { header: 'Action', accessor: (team) => <Link to={`/faculty/teams/${team.id}`}><Button variant="outline" className="py-1 px-3 text-xs">View Team</Button></Link> }
   ];
 
   return (

@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
+import { useAuth } from '../../contexts/AuthContext';
+import { getUsers, saveUsers } from '../../services';
+import type { UserRole } from '../../types';
 
 export const RegisterPage: React.FC = () => {
   const [name, setName] = useState('');
@@ -10,16 +13,36 @@ export const RegisterPage: React.FC = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [role, setRole] = useState('student');
-  const navigate = useNavigate();
+  const [error, setError] = useState('');
+  
+  const { login } = useAuth();
 
   const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
     if (password !== confirmPassword) {
-      alert("Passwords don't match!");
+      setError("Passwords don't match!");
       return;
     }
-    // Route to appropriate dashboard based on role
-    navigate(`/${role}`);
+    const users = getUsers();
+    if (users.find(u => u.email === email)) {
+      setError("Email already in use!");
+      return;
+    }
+    
+    // Register user
+    const newUser = {
+      id: 'u_' + Date.now(),
+      name,
+      email,
+      password,
+      role: role as UserRole,
+      isActive: true
+    };
+    
+    saveUsers([newUser, ...users]);
+    
+    // Auto-login
+    login(email, password);
   };
 
   return (
@@ -41,6 +64,7 @@ export const RegisterPage: React.FC = () => {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10 border border-gray-200">
+          {error && <div className="mb-4 p-3 bg-red-50 text-red-700 text-sm rounded border border-red-200">{error}</div>}
           <form className="space-y-4" onSubmit={handleRegister}>
             <Input
               label="Full Name"

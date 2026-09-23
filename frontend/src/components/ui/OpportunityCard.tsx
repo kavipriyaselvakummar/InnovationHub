@@ -1,5 +1,5 @@
 import React from 'react';
-import type { Opportunity } from '../../data/mockData';
+import type { Opportunity } from '../../types';
 import { StatusBadge } from './StatusBadge';
 import { Button } from '../Button';
 import { Link } from 'react-router-dom';
@@ -31,7 +31,7 @@ export const OpportunityCard: React.FC<OpportunityCardProps> = ({ opportunity, v
         <div className="flex items-center text-sm">
           <span className="font-medium text-gray-700 w-24">Skills:</span>
           <div className="flex gap-1 flex-wrap">
-            {opportunity.requiredSkills.map(skill => (
+            {opportunity.requiredSkills.map((skill: string) => (
               <span key={skill} className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs">{skill}</span>
             ))}
           </div>

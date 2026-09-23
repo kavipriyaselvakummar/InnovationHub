@@ -1,5 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import { LayoutDashboard, Users, BookOpen, CheckSquare, Settings, FileText, Activity } from 'lucide-react';
 
 export type NavItem = {
@@ -26,6 +27,8 @@ const getIcon = (iconName: string) => {
 };
 
 export const Sidebar: React.FC<SidebarProps> = ({ items }) => {
+  const { logout } = useAuth();
+  
   return (
     <aside className="w-64 bg-white border-r border-gray-200 hidden lg:block h-[calc(100vh-61px)]">
       <div className="py-4">
@@ -34,9 +37,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ items }) => {
             <li key={item.path}>
               <NavLink
                 to={item.path}
+                onClick={(e) => {
+                  if (item.label === 'Logout') {
+                    e.preventDefault();
+                    logout();
+                  }
+                }}
                 className={({ isActive }) =>
                   `flex items-center px-3 py-2 text-sm font-medium rounded-md ${
-                    isActive
+                    isActive && item.label !== 'Logout'
                       ? 'bg-blue-50 text-blue-700'
                       : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
                   }`
